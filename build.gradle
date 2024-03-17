@@ -1,9 +1,25 @@
 plugins {
     id 'java'
+    id 'io.qameta.allure' version '2.11.2'
+    id "io.freefair.lombok" version "8.6"
 }
 
 group 'ru.aydar'
 version '1.0-SNAPSHOT'
+
+allure {
+    report {
+        version.set("2.25.0")
+    }
+    adapter {
+        aspectjWeaver.set(true)
+        frameworks {
+            junit5 {
+                adapterVersion.set("2.25.0")
+            }
+        }
+    }
+}
 
 repositories {
     mavenCentral()
@@ -14,8 +30,13 @@ dependencies {
             'org.junit.jupiter:junit-jupiter:5.10.2',
             'io.rest-assured:rest-assured:5.4.0',
             'io.rest-assured:json-schema-validator:5.4.0',
-            'org.slf4j:slf4j-simple:2.0.12'
+            'org.slf4j:slf4j-simple:2.0.12',
+            'io.qameta.allure:allure-rest-assured:2.25.0'
     )
+}
+
+compileTestJava {
+    options.encoding = 'UTF-8'
 }
 
 test {
