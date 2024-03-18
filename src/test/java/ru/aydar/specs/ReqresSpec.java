@@ -18,17 +18,17 @@ public class ReqresSpec {
             .log().body()
             .contentType(JSON);
 
-    public static ResponseSpecification createdResponseSpec = new ResponseSpecBuilder()
+    public static ResponseSpecification created201ResponseSpec = new ResponseSpecBuilder()
             .expectStatusCode(201)
             .log(BODY)
             .build();
 
-    public static ResponseSpecification okResponseSpec = new ResponseSpecBuilder()
+    public static ResponseSpecification ok200ResponseSpec = new ResponseSpecBuilder()
             .expectStatusCode(200)
             .log(BODY)
             .build();
 
-    public static ResponseSpecification notFoundResponseSpec = new ResponseSpecBuilder()
+    public static ResponseSpecification notFound404ResponseSpec = new ResponseSpecBuilder()
             .expectStatusCode(404)
             .log(STATUS)
             .build();

@@ -31,7 +31,8 @@ dependencies {
             'io.rest-assured:rest-assured:5.4.0',
             'io.rest-assured:json-schema-validator:5.4.0',
             'org.slf4j:slf4j-simple:2.0.12',
-            'io.qameta.allure:allure-rest-assured:2.25.0'
+            'io.qameta.allure:allure-rest-assured:2.25.0',
+            'org.assertj:assertj-core:3.25.3'
     )
 }
 

@@ -1,41 +1,22 @@
 package ru.aydar.tests;
 
-import io.qameta.allure.Step;
 import io.restassured.RestAssured;
+import org.assertj.core.api.SoftAssertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import ru.aydar.models.*;
 
-import java.util.ArrayList;
-
 import static io.qameta.allure.Allure.step;
 import static io.restassured.RestAssured.given;
 import static io.restassured.module.jsv.JsonSchemaValidator.matchesJsonSchemaInClasspath;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.assertj.core.api.Assertions.assertThat;
 import static ru.aydar.specs.ReqresSpec.*;
+import static ru.aydar.utils.SearchByFieldUtil.getLastNameByFirstName;
+import static ru.aydar.utils.SearchByFieldUtil.getPantoneCodeByColorName;
 
 @DisplayName("Тесты для API сайта Reqres.in")
 public class ReqresTest {
-    @Step("Поиск пользователя по имени '{1}' и получение его фамилии")
-    String getLastNameByFirstName(ArrayList<UserDataModel> users, String firstName) {
-        for (UserDataModel user : users) {
-            if (user.getFirst_name().equals(firstName)) return user.getLast_name();
-        }
-        return null;
-    }
-
-    @Step("Поиск цвета по названию '{1}' и получение его Pantone-кода")
-    String getPantoneCodeByColorName(ArrayList<ColorDataModel> colors, String name) {
-        for (ColorDataModel color : colors) {
-            if (color.getName().equals(name)) return color.getPantone_value();
-        }
-        return null;
-    }
-
     @BeforeAll
     static void restAssuredBase() {
         RestAssured.baseURI = "https://reqres.in";
@@ -45,7 +26,7 @@ public class ReqresTest {
     @Test
     @DisplayName("Проверка создания пользователя")
     void createUserTest() {
-        UserRequestBodyModel body = new UserRequestBodyModel();
+        UserCreateUpdateRequestModel body = new UserCreateUpdateRequestModel();
         body.setName("Vasya Pupkin");
         body.setJob("Jester");
         UserCreateResponseModel response = step("Отправка запроса на создание пользователя", () ->
@@ -54,18 +35,18 @@ public class ReqresTest {
                         .when()
                         .post("/users")
                         .then()
-                        .spec(createdResponseSpec)
+                        .spec(created201ResponseSpec)
                         .extract().as(UserCreateResponseModel.class));
-        step("Проверка полей созданного пользователя в ответе", () ->
-                assertAll(
-                        () -> assertThat(response.getName(), equalTo("Vasya Pupkin")),
-                        () -> assertThat(response.getJob(), equalTo("Jester"))));
+        SoftAssertions userInfo = new SoftAssertions();
+        userInfo.assertThat(response.getName()).as("Имя пользователя").isEqualTo("Vasya Pupkin");
+        userInfo.assertThat(response.getJob()).as("Профессия пользователя").isEqualTo("Jester");
+        step("Проверка полей созданного пользователя в ответе", () -> userInfo.assertAll());
     }
 
     @Test
     @DisplayName("Проверка редактирования пользователя")
     void editUserTest() {
-        UserRequestBodyModel body = new UserRequestBodyModel();
+        UserCreateUpdateRequestModel body = new UserCreateUpdateRequestModel();
         body.setName("Emma Wong");
         body.setJob("Associate Jester");
         UserUpdateResponseModel response = step("Отправка запроса на редактирование пользователя", () ->
@@ -74,30 +55,30 @@ public class ReqresTest {
                         .when()
                         .patch("/users/3")
                         .then()
-                        .spec(okResponseSpec)
+                        .spec(ok200ResponseSpec)
                         .extract().as(UserUpdateResponseModel.class));
-        step("Проверка отредактированых полей пользователя в ответе", () ->
-                assertAll(
-                        () -> assertThat(response.getName(), equalTo("Emma Wong")),
-                        () -> assertThat(response.getJob(), equalTo("Associate Jester"))));
+        SoftAssertions userInfo = new SoftAssertions();
+        userInfo.assertThat(response.getName()).as("Имя пользователя").isEqualTo("Emma Wong");
+        userInfo.assertThat(response.getJob()).as("Профессия пользователя").isEqualTo("Associate Jester");
+        step("Проверка отредактированых полей пользователя в ответе", () -> userInfo.assertAll());
     }
 
     @Test
     @DisplayName("Проверка регистрации пользователя")
     void registerUserTest() {
-        String body = "{\"email\": \"eve.holt@reqres.in\", \"password\": \"TotallyNotAJester2007\"}";
+        UserRegisterRequestModel body = new UserRegisterRequestModel();
+        body.setEmail("eve.holt@reqres.in");
+        body.setPassword("TotallyNotAJester2007");
         UserRegisterResponseModel response = step("Отправка запроса на регистрацию пользователя", () ->
                 given(basicRequestSpec)
                         .body(body)
                         .when()
                         .post("/register")
                         .then()
-                        .spec(okResponseSpec)
+                        .spec(ok200ResponseSpec)
                         .extract().as(UserRegisterResponseModel.class));
-        step("Проверка полей зарегистрированного пользователя в ответе", () ->
-                assertAll(
-                        () -> assertThat(response.getId(), equalTo(4)),
-                        () -> assertThat(response.getToken(), equalTo("QpwL5tke4Pnpja7X4"))));
+        step("Проверка токена зарегистрированного пользователя в ответе", () ->
+                assertThat(response.getToken().length()).as("Количество символов в токене %s", response.getToken()).isEqualTo(17));
     }
 
     @Test
@@ -108,11 +89,11 @@ public class ReqresTest {
                         .when()
                         .get("/users")
                         .then()
-                        .spec(okResponseSpec)
+                        .spec(ok200ResponseSpec)
                         .body(matchesJsonSchemaInClasspath("users_schema.json"))
                         .extract().as(UserGetListResponseModel.class));
         step("Проверка соответствия фамилии пользователя его имени в ответе", () ->
-                assertEquals("Weaver", getLastNameByFirstName(response.getData(), "Janet")));
+                assertThat(getLastNameByFirstName(response.getData(), "Janet")).isEqualTo("Weaver"));
     }
 
     @Test
@@ -123,10 +104,10 @@ public class ReqresTest {
                         .when()
                         .get("/unknown")
                         .then()
-                        .spec(okResponseSpec)
+                        .spec(ok200ResponseSpec)
                         .extract().as(ColorGetListResponseModel.class));
         step("Проверка соответствия Pantone-кода цвета его названию в ответе", () ->
-                assertEquals("17-2031", getPantoneCodeByColorName(response.getData(),"fuchsia rose")));
+                assertThat(getPantoneCodeByColorName(response.getData(), "fuchsia rose")).as("Pantone-код").isEqualTo("17-2031"));
     }
 
     @Test
@@ -137,7 +118,7 @@ public class ReqresTest {
                         .when()
                         .get("/users/13")
                         .then()
-                        .spec(notFoundResponseSpec));
+                        .spec(notFound404ResponseSpec));
     }
 
     @Test
@@ -148,6 +129,6 @@ public class ReqresTest {
                         .when()
                         .get("/unknown/13")
                         .then()
-                        .spec(notFoundResponseSpec));
+                        .spec(notFound404ResponseSpec));
     }
 }

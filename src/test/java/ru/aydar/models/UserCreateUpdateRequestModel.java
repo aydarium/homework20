@@ -3,6 +3,6 @@ package ru.aydar.models;
 import lombok.Data;
 
 @Data
-public class UserRequestBodyModel {
+public class UserCreateUpdateRequestModel {
     String name, job;
 }
